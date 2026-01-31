@@ -48,40 +48,6 @@
 
 ---
 
-## 📊 GitHub Stats
-
-<div align="center">
-
-![Lucas's GitHub stats](https://github-readme-stats.vercel.app/api?username=lucasywamoto&show_icons=true&theme=tokyonight&hide_border=true&count_private=true)
-
-![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=lucasywamoto&layout=compact&theme=tokyonight&hide_border=true)
-
-![GitHub Streak](https://github-readme-streak-stats.herokuapp.com/?user=lucasywamoto&theme=tokyonight&hide_border=true)
-
-</div>
-
----
-
-## 🌟 Featured Projects
-
-### 🍳 [Chef Time App](https://github.com/lucasywamoto/chef-time-app)
-JavaFX application to search recipes using the Edamam API
-- **Tech Stack:** Java, JavaFX, Edamam API
-- **Features:** Recipe search, nutritional information, user-friendly interface
-
-### ❤️ [ClearHeart](https://github.com/lucasywamoto/ClearHeart)
-Full-stack web application
-- **Tech Stack:** JavaScript, HTML, CSS
-- **Features:** [Add your key features here]
-
----
-
-## 📈 Activity Graph
-
-[![Lucas's github activity graph](https://github-readme-activity-graph.vercel.app/graph?username=lucasywamoto&theme=tokyo-night&hide_border=true)](https://github.com/ashutosh00710/github-readme-activity-graph)
-
----
-
 ## 🤝 Let's Connect!
 
 <div align="center">
