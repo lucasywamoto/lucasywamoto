@@ -18,11 +18,13 @@ jobs:
             SUBDOMAIN=$(jq -r '.deploy.subdomain // ""' deploy.config.json)
             DOMAIN=$(jq -r '.deploy.domain // ""' deploy.config.json)
             APP_PATH=$(jq -r '.deploy.app_path // "/var/www/app"' deploy.config.json)
+            APP_NAME=$(jq -r '.deploy.app_name // "app"' deploy.config.json)
             
             echo "enabled=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
             echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
             echo "domain=$DOMAIN" >> $GITHUB_OUTPUT
             echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
+            echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
           else
             echo "enabled=false" >> $GITHUB_OUTPUT
           fi
@@ -38,7 +40,7 @@ jobs:
             cd ${{ steps.check_deploy.outputs.app_path }}
             git pull origin main
             npm install
-            pm2 restart your-app || pm2 start npm --name "your-app" -- start
+            pm2 restart ${{ steps.check_deploy.outputs.app_name }} || pm2 start npm --name "${{ steps.check_deploy.outputs.app_name }}" -- start
 
       - name: Check if DNS record exists
         if: steps.check_deploy.outputs.enabled == 'true'
