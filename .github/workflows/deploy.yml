@@ -1,0 +1,88 @@
+name: Conditional Deploy to Hetzner
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Check if deployment is enabled
+        id: check_deploy
+        run: |
+          if [ -f "deploy.config.json" ]; then
+            SHOULD_DEPLOY=$(jq -r '.deploy.enabled // false' deploy.config.json)
+            SUBDOMAIN=$(jq -r '.deploy.subdomain // ""' deploy.config.json)
+            DOMAIN=$(jq -r '.deploy.domain // ""' deploy.config.json)
+            APP_PATH=$(jq -r '.deploy.app_path // "/var/www/app"' deploy.config.json)
+            
+            echo "enabled=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+            echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
+            echo "domain=$DOMAIN" >> $GITHUB_OUTPUT
+            echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
+          else
+            echo "enabled=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Deploy to Hetzner
+        if: steps.check_deploy.outputs.enabled == 'true'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            cd ${{ steps.check_deploy.outputs.app_path }}
+            git pull origin main
+            npm install
+            pm2 restart your-app || pm2 start npm --name "your-app" -- start
+
+      - name: Check if DNS record exists
+        if: steps.check_deploy.outputs.enabled == 'true'
+        id: check_dns
+        run: |
+          SUBDOMAIN="${{ steps.check_deploy.outputs.subdomain }}"
+          RESPONSE=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=${SUBDOMAIN}.${{ steps.check_deploy.outputs.domain }}" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json")
+          
+          RECORD_ID=$(echo $RESPONSE | jq -r '.result[0].id // ""')
+          echo "record_id=$RECORD_ID" >> $GITHUB_OUTPUT
+
+      - name: Create or Update Cloudflare DNS Record
+        if: steps.check_deploy.outputs.enabled == 'true'
+        run: |
+          SUBDOMAIN="${{ steps.check_deploy.outputs.subdomain }}"
+          RECORD_ID="${{ steps.check_dns.outputs.record_id }}"
+          
+          if [ -z "$RECORD_ID" ]; then
+            # Create new record
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data '{
+                "type": "A",
+                "name": "'"$SUBDOMAIN"'",
+                "content": "${{ secrets.HETZNER_SERVER_IP }}",
+                "ttl": 1,
+                "proxied": true
+              }'
+            echo "✅ Created DNS record for $SUBDOMAIN"
+          else
+            # Update existing record
+            curl -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data '{
+                "type": "A",
+                "name": "'"$SUBDOMAIN"'",
+                "content": "${{ secrets.HETZNER_SERVER_IP }}",
+                "ttl": 1,
+                "proxied": true
+              }'
+            echo "✅ Updated DNS record for $SUBDOMAIN"
+          fi
