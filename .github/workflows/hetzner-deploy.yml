@@ -16,13 +16,11 @@ jobs:
           if [ -f "deploy.config.json" ]; then
             SHOULD_DEPLOY=$(jq -r '.deploy.enabled // false' deploy.config.json)
             SUBDOMAIN=$(jq -r '.deploy.subdomain // ""' deploy.config.json)
-            DOMAIN=$(jq -r '.deploy.domain // ""' deploy.config.json)
             APP_PATH=$(jq -r '.deploy.app_path // "/var/www/app"' deploy.config.json)
             APP_NAME=$(jq -r '.deploy.app_name // "app"' deploy.config.json)
             
             echo "enabled=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
             echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
-            echo "domain=$DOMAIN" >> $GITHUB_OUTPUT
             echo "app_path=$APP_PATH" >> $GITHUB_OUTPUT
             echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
           else
@@ -48,7 +46,7 @@ jobs:
         run: |
           SUBDOMAIN="${{ steps.check_deploy.outputs.subdomain }}"
           RESPONSE=$(curl -s -X GET \
-            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=${SUBDOMAIN}.${{ steps.check_deploy.outputs.domain }}" \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=${SUBDOMAIN}.${{ secrets.CLOUDFLARE_DOMAIN }}" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json")
           
